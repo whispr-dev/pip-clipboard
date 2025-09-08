@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>pip-clip-osd</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' tauri:;">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="hud" class="hud hidden">
+    <div id="content" class="content"></div>
+    <div id="hint" class="hint">Safe paste: Ctrl+Shift+V</div>
+  </div>
+
+  <div id="confirm" class="confirm hidden">
+    <div class="confirm-card">
+      <div class="confirm-title">Paste this?</div>
+      <div id="confirm-preview" class="confirm-preview"></div>
+      <div class="confirm-actions">
+        <button id="btn-cancel">Cancel</button>
+        <button id="btn-confirm">Paste</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

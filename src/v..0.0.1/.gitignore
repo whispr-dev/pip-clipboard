@@ -1,0 +1,5 @@
+/target
+/src-tauri/target
+/src-tauri/Cargo.lock
+/dist
+/.DS_Store

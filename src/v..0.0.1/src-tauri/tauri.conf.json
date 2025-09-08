@@ -1,0 +1,50 @@
+{
+  "package": {
+    "productName": "pip-clip-osd",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "shell": { "all": false },
+      "globalShortcut": { "all": true },
+      "window": { "all": true },
+      "dialog": { "all": false },
+      "clipboard": { "all": false },
+      "event": { "all": true }
+    },
+    "windows": [
+      {
+        "label": "hud",
+        "title": "pip-clip-osd HUD",
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "transparent": true,
+        "focus": false,
+        "width": 420,
+        "height": 220,
+        "visible": true
+      }
+    ],
+    "systemTray": {
+      "iconPath": "",
+      "menuOnLeftClick": true
+    },
+    "security": {
+      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' tauri:"
+    },
+    "bundle": {
+      "active": true,
+      "targets": "all",
+      "identifier": "dev.whispr.pip-clip-osd"
+    }
+  },
+  "build": {
+    "beforeBuildCommand": "",
+    "beforeDevCommand": "",
+    "devPath": "../ui",
+    "distDir": "../ui"
+  }
+}
