@@ -1,0 +1,163 @@
+name: Build pip-clip-osd
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_folder:
+        description: "Source folder name under src/ (e.g. v.0.2.2)"
+        required: true
+        default: "v.0.2.2"
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  APP_NAME: pip-clip-osd
+  SRC_DIR: src/${{ github.event.inputs.version_folder }}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+            label: windows-x64
+          - platform: ubuntu-22.04
+            rust_target: x86_64-unknown-linux-gnu
+            label: linux-x64
+          - platform: macos-latest
+            rust_target: aarch64-apple-darwin
+            label: macos-arm64
+          - platform: macos-13
+            rust_target: x86_64-apple-darwin
+            label: macos-x64
+
+    runs-on: ${{ matrix.platform }}
+    name: Build (${{ matrix.label }})
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "${{ env.SRC_DIR }}/src-tauri -> target"
+
+      # ── Linux system deps (WebKitGTK, AppIndicator, etc.) ──────────
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libxdo-dev \
+            libx11-dev \
+            libxext-dev \
+            libxtst-dev
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Build release
+        working-directory: ${{ env.SRC_DIR }}
+        run: cargo tauri build --target ${{ matrix.rust_target }}
+
+      # ── Collect artifacts per platform ─────────────────────────────
+      - name: Collect Windows artifacts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $base = "${{ env.SRC_DIR }}/src-tauri/target/${{ matrix.rust_target }}/release"
+          $out = "artifacts"
+          New-Item -ItemType Directory -Force -Path $out
+
+          # Standalone exe
+          Copy-Item "$base/${{ env.APP_NAME }}.exe" "$out/" -ErrorAction SilentlyContinue
+
+          # MSI installer
+          $msi = Get-ChildItem "$base/bundle/msi/*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($msi) { Copy-Item $msi.FullName "$out/" }
+
+          # NSIS installer
+          $nsis = Get-ChildItem "$base/bundle/nsis/*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($nsis) { Copy-Item $nsis.FullName "$out/" }
+
+          Get-ChildItem "$out/"
+
+      - name: Collect Linux artifacts
+        if: runner.os == 'Linux'
+        run: |
+          base="${{ env.SRC_DIR }}/src-tauri/target/${{ matrix.rust_target }}/release"
+          mkdir -p artifacts
+
+          # AppImage
+          find "$base/bundle/appimage" -name '*.AppImage' -exec cp {} artifacts/ \; 2>/dev/null || true
+
+          # .deb
+          find "$base/bundle/deb" -name '*.deb' -exec cp {} artifacts/ \; 2>/dev/null || true
+
+          # .rpm
+          find "$base/bundle/rpm" -name '*.rpm' -exec cp {} artifacts/ \; 2>/dev/null || true
+
+          ls -la artifacts/
+
+      - name: Collect macOS artifacts
+        if: runner.os == 'macOS'
+        run: |
+          base="${{ env.SRC_DIR }}/src-tauri/target/${{ matrix.rust_target }}/release"
+          mkdir -p artifacts
+
+          # .dmg
+          find "$base/bundle/dmg" -name '*.dmg' -exec cp {} artifacts/ \; 2>/dev/null || true
+
+          # .app (zip it for upload)
+          app=$(find "$base/bundle/macos" -name '*.app' -maxdepth 1 2>/dev/null | head -1)
+          if [ -n "$app" ]; then
+            cd "$(dirname "$app")"
+            zip -r "$GITHUB_WORKSPACE/artifacts/$(basename "$app" .app)-${{ matrix.label }}.app.zip" "$(basename "$app")"
+          fi
+
+          ls -la artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ matrix.label }}
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+  # ── Optional: bundle all into a single release-ready zip ───────────
+  collect:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Collect all builds
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+          merge-multiple: true
+
+      - name: List everything
+        run: find all-artifacts -type f | sort
+
+      - name: Upload combined
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-all-platforms
+          path: all-artifacts/*
+          retention-days: 30
