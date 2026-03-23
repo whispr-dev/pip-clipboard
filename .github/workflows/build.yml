@@ -31,7 +31,7 @@ jobs:
           - platform: macos-latest
             rust_target: aarch64-apple-darwin
             label: macos-arm64
-          - platform: macos-13
+          - platform: macos-14
             rust_target: x86_64-apple-darwin
             label: macos-x64
 
@@ -117,19 +117,20 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           base="${{ env.SRC_DIR }}/src-tauri/target/${{ matrix.rust_target }}/release"
-          mkdir -p artifacts
+          out="$GITHUB_WORKSPACE/artifacts"
+          mkdir -p "$out"
 
           # .dmg
-          find "$base/bundle/dmg" -name '*.dmg' -exec cp {} artifacts/ \; 2>/dev/null || true
+          find "$base/bundle/dmg" -name '*.dmg' -exec cp {} "$out/" \; 2>/dev/null || true
 
           # .app (zip it for upload)
           app=$(find "$base/bundle/macos" -name '*.app' -maxdepth 1 2>/dev/null | head -1)
           if [ -n "$app" ]; then
             cd "$(dirname "$app")"
-            zip -r "$GITHUB_WORKSPACE/artifacts/$(basename "$app" .app)-${{ matrix.label }}.app.zip" "$(basename "$app")"
+            zip -r "$out/$(basename "$app" .app)-${{ matrix.label }}.app.zip" "$(basename "$app")"
           fi
 
-          ls -la artifacts/
+          ls -la "$out/"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
