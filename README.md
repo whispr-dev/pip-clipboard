@@ -24,6 +24,13 @@
   </a>
   <img src="https://img.shields.io/badge/Status-Alpha-orange?style=flat-square" alt="Status">
 </p>
+[![Build pip-clip-osd](https://github.com/whispr-dev/pip-clipboard/actions/workflows/build.yml/badge.svg?event=workflow_dispatch)](https://github.com/whispr-dev/pip-clipboard/actions/workflows/build.yml)
+
+<p align="center">
+  <img src="/assets/whispr-dev/pip-clipboard-banner.png" width="850" alt="PiP Clip OSD Banner">
+</p>
+<!-- repo-convergence:readme-header:end -->
+
 
 **Never again accidentally paste something you regret.**
 
