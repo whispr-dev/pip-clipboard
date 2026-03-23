@@ -1,16 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════
 //  pip-clip-osd  —  UI controller  (Tauri v2)
-//
-//  The Tauri window is ALWAYS visible. It has a transparent background,
-//  so when no HTML content is shown it's completely invisible and
-//  click-through. We NEVER call window.hide() because that destroys
-//  WebView2's page state on Windows.
-//
 //  Two modes:
-//    1. Ambient — brief toast on clipboard change (CSS only)
-//    2. Preview — persistent safe-paste overlay (Ctrl+Shift+V)
+//    1. Ambient HUD  — brief toast on clipboard change
+//    2. Preview       — persistent safe-paste overlay (Ctrl+Shift+V)
 // ═══════════════════════════════════════════════════════════════════════
 
+// Tauri v2: invoke lives under __TAURI__.core, not __TAURI__.tauri
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
@@ -89,7 +84,7 @@ function updateBadge(el, payload) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-//  AMBIENT HUD — pure CSS show/hide, no window manipulation
+//  AMBIENT HUD
 // ═══════════════════════════════════════════════════════════════════════
 
 function showAmbient(payload) {
@@ -99,16 +94,13 @@ function showAmbient(payload) {
   updateBadge(ambientBadge, payload);
 
   ambientEl.classList.remove("hidden");
-  void ambientEl.offsetWidth; // force reflow for transition
+  void ambientEl.offsetWidth; // force reflow
   ambientEl.classList.add("show");
 
   if (ambientTimer) clearTimeout(ambientTimer);
   ambientTimer = setTimeout(() => {
     ambientEl.classList.remove("show");
-    // After the CSS fade-out (280ms), set display:none
-    ambientTimer = setTimeout(() => {
-      ambientEl.classList.add("hidden");
-    }, 280);
+    ambientTimer = setTimeout(() => ambientEl.classList.add("hidden"), 280);
   }, 2800);
 }
 
@@ -117,7 +109,6 @@ function showAmbient(payload) {
 // ═══════════════════════════════════════════════════════════════════════
 
 function showPreview(payload) {
-  // Kill any ambient toast
   if (ambientTimer) clearTimeout(ambientTimer);
   ambientEl.classList.remove("show");
   ambientEl.classList.add("hidden");
@@ -174,6 +165,7 @@ document.addEventListener("keydown", (e) => {
     return;
   }
 
+  // Ctrl+V / Cmd+V → confirm
   if ((e.ctrlKey || e.metaKey) && e.key === "v") {
     e.preventDefault();
     doConfirm();
@@ -181,7 +173,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// ── Window blur → cancel preview (user clicked away) ──────────────────
+// ── Window blur → cancel ──────────────────────────────────────────────
 
 window.addEventListener("blur", () => {
   if (previewActive) doCancel();

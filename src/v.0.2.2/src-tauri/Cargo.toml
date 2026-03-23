@@ -19,7 +19,7 @@ parking_lot = "0.12"
 anyhow = "1.0"
 
 [build-dependencies]
-tauri-build = "2"
+tauri-build = { version = "2", features = [] }
 
 [profile.release]
 strip = true
